@@ -1,5 +1,5 @@
 """
-Verb emitters for p2m (protect-DSL → microdata.no).
+Verb emitters for deid (protect-DSL → microdata.no).
 
 Each Tier-A emitter has the signature:
 
@@ -622,7 +622,7 @@ def emit_diff(col, kwargs, ctx):
       <column name>     pairwise anchor      (col - other)
 
     Stats: min/max/mean/median/p25/p75. Per-unit forms require unit_id.
-    NB: p2m's default ref (random_global) differs from protect's (first_per_unit)
+    NB: deid's default ref (random_global) differs from protect's (first_per_unit)
     so a bare diff(x) is useful without unit_id. `unit='years'|'months'` divides
     the result (date-only).
     """

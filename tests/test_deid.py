@@ -1,10 +1,10 @@
-"""Tests for the p2m Tier-A skeleton (protect-DSL → microdata.no)."""
+"""Tests for the deid Tier-A skeleton (protect-DSL → microdata.no)."""
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from p2m import transform
+from deid import transform
 
 
 def _lines(src):

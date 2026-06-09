@@ -3,7 +3,7 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "p2m"
+name = "deid"
 version = "0.1.0"
 description = "Translate statistical-disclosure-control verbs into microdata.no scripts"
 readme = "README.md"
@@ -15,7 +15,7 @@ keywords = ["microdata", "statistical disclosure control", "sdc", "anonymization
 dependencies = []
 
 [project.urls]
-Homepage = "https://github.com/hmelberg/p2m"
+Homepage = "https://github.com/hmelberg/deid"
 
 [tool.setuptools]
-packages = ["p2m"]
+packages = ["deid"]

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>p2m — playground</title>
+<title>deid — playground</title>
 <style>
   :root{
     --bg:#fafaf7; --panel:#fff; --ink:#1c1c1c; --muted:#5a5a5a; --line:#e3e1da;
@@ -87,7 +87,7 @@
 </head>
 <body>
 <header>
-  <h1><span class="b">p2m</span> — playground</h1>
+  <h1><span class="b">deid</span> — playground</h1>
   <span class="tag">protect-inspired SDC &rarr; microdata.no</span>
   <div class="right">
     <span class="status" id="status">ready</span>
@@ -99,7 +99,7 @@
   <div class="body">
     <h2>SDC verbs &rarr; microdata.no script</h2>
     <p>Write disclosure-control steps in a small call syntax — e.g.
-       <code>round(inntekt, to=1000)</code> — and p2m translates them to a valid
+       <code>round(inntekt, to=1000)</code> — and deid translates them to a valid
        <b>microdata.no</b> script (shown in <i>Generated microdata</i>).</p>
     <p>Because microdata can't run in the browser, the <i>Effect on sample data</i>
        panel <b>simulates</b> each step on a tiny example table so you can see the
@@ -158,7 +158,7 @@
 
 <script>
 /* ────────────────────────────────────────────────────────────────────────────
-   p2m translator — faithful JS port of p2m/commands.py + __init__.py.
+   deid translator — faithful JS port of deid/commands.py + __init__.py.
    Keep parallel to the Python; that file is canonical.
    ──────────────────────────────────────────────────────────────────────────── */
 
@@ -893,7 +893,7 @@ risk(quasi_ids=["kjonn", "kommune", "alder"])`;
   $('guideBtn').onclick=()=>$('welcome').showModal();
   $('welcomeGot').onclick=()=>$('welcome').close();
   $('editor').value=STARTER; run();
-  try{ if(!localStorage.getItem('p2m_seen')){ $('welcome').showModal(); localStorage.setItem('p2m_seen','1'); } }catch(e){}
+  try{ if(!localStorage.getItem('deid_seen')){ $('welcome').showModal(); localStorage.setItem('deid_seen','1'); } }catch(e){}
 })();
 </script>
 </body>

@@ -1,13 +1,13 @@
-# p2m — SDC verbs → microdata.no
+# deid — SDC verbs → microdata.no
 
 Translates statistical-disclosure-control verbs (a small `protect`-inspired call
-DSL) into valid [microdata.no](https://microdata.no) script. p2m is its own SDC
+DSL) into valid [microdata.no](https://microdata.no) script. deid is its own SDC
 dialect tuned for microdata, inspired by the
 [`protect`](https://github.com/hmelberg/protect) package. Pure Python standard
 library — no runtime dependencies.
 
 ```python
-from p2m import transform
+from deid import transform
 res = transform("round(income, to=1000)\nshorten(icd, keep=3)")
 print(res.script())     # microdata lines, each prefixed with a // audit comment
 print(res.warnings)     # honest list of anything dropped, approximated, or pending
@@ -20,7 +20,7 @@ pip install -e .
 pytest tests/        # 86 tests
 ```
 
-**Try it in a browser:** open `p2m_runner.html` — a single self-contained page
+**Try it in a browser:** open `deid_runner.html` — a single self-contained page
 (no server, no dependencies) that translates the DSL → microdata live, with
 worked examples. It is a JavaScript port of `commands.py`; the **Python is the
 source of truth** — keep them in sync when adding or changing verbs.
@@ -153,7 +153,7 @@ reference is chosen by `ref`:
 | another column | — | pairwise: `col - other` |
 
 `unit='years'|'months'` divides the result (date-only). Per-unit refs require
-`unit_id`. **p2m's default ref (`random_global`) differs from protect's
+`unit_id`. **deid's default ref (`random_global`) differs from protect's
 (`first_per_unit`)** so a bare `diff(x)` is useful without `unit_id`.
 
 **`diff_date` — for ISO-string date variables.** microdata's diffable date is the
@@ -260,7 +260,7 @@ applies output SDC automatically — the 10 *Tiltak*).
    synthesize a constant key (`generate protect2micro_one = 1`)?
 2. ~~Exact **`recode` interval-rule syntax**~~ — **confirmed:** `recode v1 v2
    (1/7 = 0) (nonmissing = 1) (missing = 99 "vet ikke" missing)`. So ranges
-   `(a/b = x)`, `nonmissing`, and `missing = x` all work (p2m uses `(missing = 0)`).
+   `(a/b = x)`, `nonmissing`, and `missing = x` all work (deid uses `(missing = 0)`).
 3. Can `sample`'s seeded selection become an **in-place flag** (perturb a share,
    keep the rest)? If not, `share` only works for pure-selection verbs.
 4. Are full-date variables stored as **date-values or ISO strings**, and can
@@ -277,7 +277,7 @@ applies output SDC automatically — the 10 *Tiltak*).
   `ast`-based parse of `verb(column, **kwargs)` statements + dispatch.
 - `commands.py` — `Ctx`, the `REGISTRY` of Tier-A emitters, and the
   `TIER_B_PENDING` / `TIER_C_REASONS` tables.
-- `tests/test_p2m.py` — `pytest tests/`.
+- `tests/test_deid.py` — `pytest tests/`.
 
 **Temp-name rule:** microdata forbids variable (and dataset) names that start
 with `_`. All generated temporaries go through `Ctx.tmp()`, which prefixes
@@ -289,4 +289,4 @@ Never hand-write a leading-underscore name in an emitter.
    the "unverified" caveats (and switch globals to a constant key if empty `by()`
    fails).
 2. Implement `profile` (named compositions — the only remaining verb).
-3. Wire `p2m` into the editor as a 4th source mode beside Python/R.
+3. Wire `deid` into the editor as a 4th source mode beside Python/R.

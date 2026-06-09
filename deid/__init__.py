@@ -1,11 +1,11 @@
 """
-p2m — protect-inspired SDC verbs → microdata.no script translator.
+deid — protect-inspired SDC verbs → microdata.no script translator.
 
 Write statistical-disclosure-control verbs in a small call DSL
 (e.g. ``round(income, to=1000)``) and get valid microdata.no script.
 
 Quick start:
-    from p2m import transform
+    from deid import transform
 
     result = transform("round(income, to=1000)\\nshorten(icd, keep=3)")
     print(result.script())

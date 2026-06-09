@@ -1,6 +1,6 @@
-# p2m — verifiseringsskript for microdata.no
+# deid — verifiseringsskript for microdata.no
 
-p2m genererer microdata-kode basert på noen **uverifiserte antakelser**. Dette
+deid genererer microdata-kode basert på noen **uverifiserte antakelser**. Dette
 dokumentet tester dem mot live microdata.
 
 **Slik kjører du:** lim inn **én blokk om gangen** i microdata-editoren og kjør.
@@ -11,9 +11,9 @@ egen `require`/`import`). Noter for hver blokk om den **kjørte** og hva
 **Juster ved behov:** databank-versjon (`no.ssb.fdb:54`), variabelnavn, og
 person-ID (`PERSONID_1`) til det du har tilgang til.
 
-Resultatene avgjør disse p2m-funksjonene:
+Resultatene avgjør disse deid-funksjonene:
 
-| Blokk | Tester | Gjelder p2m-funksjon |
+| Blokk | Tester | Gjelder deid-funksjon |
 |---|---|---|
 | 1 | `round`, `quantile`, `recode (missing/interval)` | `coarsen`, `bin`, kategorisk `collapse` |
 | 2 | `aggregate` uten `by()` | global `diff`/`winsorize` (ellers konstant-nøkkel) |
@@ -28,7 +28,7 @@ Resultatene avgjør disse p2m-funksjonene:
 
 ```
 require no.ssb.fdb:54 as fd
-create-dataset p2m_b1
+create-dataset deid_b1
 import fd/INNTEKT_WLONN 2022-01-01 as inntekt
 
 generate b1_round = round(inntekt, 50000)        // coarsen
@@ -49,7 +49,7 @@ konstant-nøkkel-trikset.
 
 ```
 require no.ssb.fdb:54 as fd
-create-dataset p2m_b2
+create-dataset deid_b2
 import fd/INNTEKT_WLONN 2022-01-01 as inntekt
 
 aggregate (mean) inntekt -> b2_pop_mean
@@ -57,21 +57,21 @@ summarize b2_pop_mean
 ```
 
 **Forventet OK:** `b2_pop_mean` lik på alle rader (populasjonsgjennomsnittet).
-**Hvis FEIL:** tom `by()` støttes ikke → p2m må bruke fallback (test Blokk 2b).
+**Hvis FEIL:** tom `by()` støttes ikke → deid må bruke fallback (test Blokk 2b).
 
 ### Blokk 2b — fallback med konstant nøkkel (hvis 2 feilet)
 
 ```
 require no.ssb.fdb:54 as fd
-create-dataset p2m_b2b
+create-dataset deid_b2b
 import fd/INNTEKT_WLONN 2022-01-01 as inntekt
 
-generate p2m_one = 1
-aggregate (mean) inntekt -> b2b_mean, by(p2m_one)
+generate deid_one = 1
+aggregate (mean) inntekt -> b2b_mean, by(deid_one)
 summarize b2b_mean
 ```
 
-**Forventet:** kjører. Hvis ja, bytter p2m globale aggregater til dette mønsteret.
+**Forventet:** kjører. Hvis ja, bytter deid globale aggregater til dette mønsteret.
 
 ---
 
@@ -84,43 +84,43 @@ en markør (`=1`), `clone-dataset`, `keep` markøren (id-en følger med).
 
 ```
 require no.ssb.fdb:54 as fd
-create-dataset p2m_b3
+create-dataset deid_b3
 import fd/BEFOLKNING_KJOENN as kjonn
 
-generate p2m_marker = 1
-clone-dataset p2m_b3 p2m_src
-use p2m_src
-keep p2m_marker
-clone-dataset p2m_src p2m_round
-use p2m_round
+generate deid_marker = 1
+clone-dataset deid_b3 deid_src
+use deid_src
+keep deid_marker
+clone-dataset deid_src deid_round
+use deid_round
 sample 0.5 12345
-generate p2m_bit = 1
-merge p2m_bit into p2m_b3 on PERSONID_1
-use p2m_b3
-recode p2m_bit (missing = 0)
-summarize p2m_bit
-delete-dataset p2m_round
-delete-dataset p2m_src
-drop p2m_marker
+generate deid_bit = 1
+merge deid_bit into deid_b3 on PERSONID_1
+use deid_b3
+recode deid_bit (missing = 0)
+summarize deid_bit
+delete-dataset deid_round
+delete-dataset deid_src
+drop deid_marker
 ```
 
-**Forventet OK:** `p2m_bit` i {0,1} med gjennomsnitt **~0.5**. → hele `draw`/`noise`/
+**Forventet OK:** `deid_bit` i {0,1} med gjennomsnitt **~0.5**. → hele `draw`/`noise`/
 `diff(random_*)`-maskineriet virker.
-**Sjekk særlig:** (a) at `keep p2m_marker` beholder markøren + id-en automatisk,
+**Sjekk særlig:** (a) at `keep deid_marker` beholder markøren + id-en automatisk,
 (b) at `sample` virker på det krympede datasettet, (c) at `merge ... on PERSONID_1`
 finner nøkkelen og at `recode (missing = 0)` setter ikke-trukne til 0,
-(d) at `delete-dataset` og `drop p2m_marker` virker.
+(d) at `delete-dataset` og `drop deid_marker` virker.
 **Hvis FEIL:** noter på hvilken linje — det forteller oss hvilket ledd som svikter.
 
 ### Blokk 3b — er `main` én rad per enhet? (avgjør per-enhet vs per-rad)
 
 ```
 require no.ssb.fdb:54 as fd
-create-dataset p2m_b3b
+create-dataset deid_b3b
 import fd/BEFOLKNING_KJOENN as kjonn
-generate p2m_one = 1
-aggregate (count) p2m_one -> p2m_rows_per_unit, by(PERSONID_1)
-summarize p2m_rows_per_unit
+generate deid_one = 1
+aggregate (count) deid_one -> deid_rows_per_unit, by(PERSONID_1)
+summarize deid_rows_per_unit
 ```
 
 **Forventet:** maks = 1 → datasettet er én rad per person, og sample-på-rad =
@@ -136,7 +136,7 @@ delmengde* (ikke bare hele populasjonen + hemmelig offset).
 
 ```
 require no.ssb.fdb:54 as fd
-create-dataset p2m_b4
+create-dataset deid_b4
 import fd/INNTEKT_WLONN 2022-01-01 as inntekt
 
 generate b4_sub = 1 * (inntekt > 300000)
@@ -157,7 +157,7 @@ Avgjør når man trenger `diff` (datoverdi) vs `diff_date` (streng), og om
 
 ```
 require no.ssb.fdb:54 as fd
-create-dataset p2m_b5
+create-dataset deid_b5
 import fd/BEFOLKNING_FOEDEAAR as foedeaar
 import fd/BEFOLKNING_FOEDEDATO as foededato
 
@@ -174,7 +174,7 @@ summarize b5_aar foedeaar b5_diff
 
 ```
 require no.ssb.fdb:54 as fd
-create-dataset p2m_b5b
+create-dataset deid_b5b
 import fd/BEFOLKNING_FOEDEDATO as foededato
 
 generate b5b_val = date(to_int(substr(foededato, 1, 4)), to_int(substr(foededato, 6, 2)), to_int(substr(foededato, 9, 2)))
@@ -192,7 +192,7 @@ Hvis microdata nekter å endre en streng-variabel til datoverdi via `replace`, m
 
 Send meg for hver blokk: **kjørte den?** og hva `summarize`/`tabulate` viste
 (særlig gjennomsnitt for Blokk 3, og om `b5_aar ≈ foedeaar` i Blokk 5). Da
-oppdaterer jeg p2m: fjerner «uverifisert»-forbeholdene, bytter eventuelt globale
+oppdaterer jeg deid: fjerner «uverifisert»-forbeholdene, bytter eventuelt globale
 aggregater til konstant-nøkkel, og fikser `diff_date` hvis type-endring ikke går.
 ```
 
@@ -205,7 +205,7 @@ de åpne endene, og bruker `define-labels`/`assign-labels` for lesbare bånd.
 
 ```
 require no.ssb.fdb:54 as fd
-create-dataset p2m_b6
+create-dataset deid_b6
 import fd/BEFOLKNING_FOEDEAAR as foedeaar
 generate alder = 2024 - foedeaar
 
