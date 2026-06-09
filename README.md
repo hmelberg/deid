@@ -20,7 +20,7 @@ pip install -e .
 pytest tests/        # 86 tests
 ```
 
-**Try it in a browser:** open `deid_runner.html` — a single self-contained page
+**Try it in a browser:** open `index.html` — a single self-contained page
 (no server, no dependencies) that translates the DSL → microdata live, with
 worked examples. It is a JavaScript port of `commands.py`; the **Python is the
 source of truth** — keep them in sync when adding or changing verbs.
