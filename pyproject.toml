@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "p2m"
+version = "0.1.0"
+description = "Translate statistical-disclosure-control verbs into microdata.no scripts"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [{ name = "Hans Melberg" }]
+keywords = ["microdata", "statistical disclosure control", "sdc", "anonymization"]
+# Pure standard library — no runtime dependencies.
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/hmelberg/p2m"
+
+[tool.setuptools]
+packages = ["p2m"]

@@ -1,0 +1,900 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>p2m — playground</title>
+<style>
+  :root{
+    --bg:#fafaf7; --panel:#fff; --ink:#1c1c1c; --muted:#5a5a5a; --line:#e3e1da;
+    --accent:#1f5fa8; --accent-soft:#e7eef8; --ok:#2f7d3a; --err:#b13a2b; --warn:#9a6700;
+    --code-bg:#f4f2ec; --chg:#fff3bf; --drop:#f7e2de; --newcol:#d6f5d6;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 var(--sans)}
+  code{font-family:var(--mono);background:var(--code-bg);padding:1px 5px;border-radius:3px;font-size:12px}
+  header{padding:16px 24px;border-bottom:1px solid var(--line);background:var(--panel);display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  header h1{margin:0;font-size:20px;font-weight:600;letter-spacing:-.01em}
+  header h1 .b{color:var(--accent)}
+  header .tag{font-family:var(--mono);color:var(--muted);font-size:12px}
+  header .right{margin-left:auto;display:flex;gap:10px;align-items:center}
+  header .status{font-family:var(--mono);font-size:12px;padding:4px 10px;border-radius:4px;background:#e2f0e2;color:var(--ok)}
+  .guide-btn{font-size:12px;font-weight:600;padding:5px 12px;background:#fff;color:var(--accent);border:1px solid var(--accent);border-radius:4px;cursor:pointer}
+  .guide-btn:hover{background:var(--accent-soft)}
+  .layout{display:grid;grid-template-columns:1fr 300px;min-height:calc(100vh - 58px)}
+  @media(max-width:980px){.layout{grid-template-columns:1fr}aside{border-left:none!important;border-top:1px solid var(--line)}}
+  main{padding:20px 24px;display:flex;flex-direction:column;gap:16px;min-width:0}
+  .brief{color:var(--muted);font-size:13px;margin:0}
+  .controls{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+  .ctl{display:flex;flex-direction:column;gap:3px}
+  .ctl label{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+  .ctl input{font-family:var(--mono);font-size:12.5px;padding:6px 8px;border:1px solid var(--line);border-radius:4px;background:#fff;width:150px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .card.editor{border:1.5px solid var(--accent);box-shadow:0 2px 10px rgba(31,95,168,.08)}
+  .card-bar{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--line);background:#f8f7f2}
+  .card-bar h3{margin:0;font-size:13px;font-weight:600}
+  .card-bar .meta{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--muted)}
+  button.run{font-size:13px;font-weight:600;padding:6px 16px;background:var(--accent);color:#fff;border:none;border-radius:4px;cursor:pointer}
+  button.run:hover{background:#194e8d}
+  button.sec{font-size:12px;padding:5px 10px;background:#fff;border:1px solid var(--line);border-radius:4px;cursor:pointer}
+  button.sec:hover{background:var(--code-bg)}
+  textarea#editor{width:100%;min-height:170px;padding:12px 14px;border:none;outline:none;resize:vertical;font-family:var(--mono);font-size:13px;line-height:1.55;background:#fdfcf7;color:var(--ink);tab-size:4}
+  pre.out{margin:0;padding:12px 14px;font-family:var(--mono);font-size:12.5px;line-height:1.55;white-space:pre-wrap;overflow:auto;max-height:340px}
+  pre.out .cm{color:var(--muted)} pre.out .un{color:var(--err)} pre.out .pe{color:var(--warn)}
+  .simwrap{padding:0;overflow:auto}
+  table.sim{border-collapse:collapse;font-family:var(--mono);font-size:12px;width:100%}
+  table.sim th,table.sim td{border:1px solid var(--line);padding:4px 8px;text-align:left;white-space:nowrap}
+  table.sim th{background:#f8f7f2;font-weight:600;position:sticky;top:0}
+  table.sim th.newc{background:var(--newcol)}
+  table.sim td.chg{background:var(--chg)}
+  table.sim td .old{color:var(--muted);text-decoration:line-through;margin-right:5px}
+  table.sim tr.drop td{background:var(--drop);color:#999;text-decoration:line-through}
+  .simnote{padding:8px 14px;font-size:12px;color:var(--muted);border-top:1px solid var(--line)}
+  .warns{font-size:12.5px}
+  .warns .hd{padding:8px 14px;color:var(--muted);border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center}
+  .warns .hd .dot{width:8px;height:8px;border-radius:50%;background:var(--ok)}
+  .warns.has .hd .dot{background:var(--warn)}
+  .warns ul{margin:0;padding:8px 14px 10px 32px;color:var(--warn)}
+  .warns ul:empty::after{content:"No warnings — every verb translated cleanly.";color:var(--muted);margin-left:-16px}
+  aside{background:var(--panel);border-left:1px solid var(--line);padding:16px;overflow-y:auto}
+  aside h2{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 10px}
+  .verb{padding:8px 10px;margin:5px 0;border:1px solid var(--line);border-radius:6px;background:#fff}
+  .verb-head{display:flex;align-items:center;gap:8px}
+  .verb-name{font-family:var(--mono);font-weight:600;color:var(--accent);font-size:13px;flex:1}
+  .try-btn,.docs-btn{font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:3px;cursor:pointer;background:#fff}
+  .try-btn{border:1px solid var(--accent);color:var(--accent)} .try-btn:hover{background:var(--accent-soft)}
+  .docs-btn{border:1px solid var(--muted);color:var(--muted)} .docs-btn:hover{background:var(--code-bg)}
+  .verb-desc{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.4}
+  .verb-doc{display:none;margin-top:8px;padding:10px 12px;background:#f4f2ec;border-radius:4px;font-size:11.5px;line-height:1.45}
+  .verb.expanded .verb-doc{display:block}
+  .vabout{color:var(--ink);margin:0 0 6px;line-height:1.5}
+  .vrow{padding:5px 0;border-top:1px solid #e6e4dc;cursor:pointer}
+  .vrow:first-of-type{border-top:none}
+  .vrow:hover code{background:var(--accent-soft)}
+  .vrow code{display:inline-block;color:var(--accent);background:transparent;padding:1px 3px;font-size:11.5px}
+  .vnote{display:block;color:var(--muted);font-size:11px;margin-top:1px}
+  dialog.welcome{border:none;border-radius:10px;padding:0;max-width:660px;width:calc(100% - 40px);box-shadow:0 12px 48px rgba(0,0,0,.18)}
+  dialog.welcome::backdrop{background:rgba(20,20,20,.45)}
+  dialog.welcome .body{padding:24px 28px 18px}
+  dialog.welcome h2{margin:0 0 12px;font-size:19px}
+  dialog.welcome p{margin:8px 0;color:#333;line-height:1.55}
+  dialog.welcome .tip{margin:16px 0 4px;padding:12px 14px;background:#fff8e1;border-left:3px solid #f5c542;border-radius:0 4px 4px 0;font-size:13px}
+  dialog.welcome .foot{padding:12px 20px;border-top:1px solid var(--line);background:#faf9f5;display:flex;justify-content:flex-end;border-radius:0 0 10px 10px}
+  dialog.welcome button.got{font-size:13px;font-weight:600;padding:7px 18px;background:var(--accent);color:#fff;border:none;border-radius:4px;cursor:pointer}
+</style>
+</head>
+<body>
+<header>
+  <h1><span class="b">p2m</span> — playground</h1>
+  <span class="tag">protect-inspired SDC &rarr; microdata.no</span>
+  <div class="right">
+    <span class="status" id="status">ready</span>
+    <button class="guide-btn" id="guideBtn">Guide</button>
+  </div>
+</header>
+
+<dialog class="welcome" id="welcome">
+  <div class="body">
+    <h2>SDC verbs &rarr; microdata.no script</h2>
+    <p>Write disclosure-control steps in a small call syntax — e.g.
+       <code>round(inntekt, to=1000)</code> — and p2m translates them to a valid
+       <b>microdata.no</b> script (shown in <i>Generated microdata</i>).</p>
+    <p>Because microdata can't run in the browser, the <i>Effect on sample data</i>
+       panel <b>simulates</b> each step on a tiny example table so you can see the
+       before &rarr; after (changed cells highlighted, dropped rows struck out).
+       Random verbs and a few others aren't simulated — they still translate.</p>
+    <p>The <b>sidebar</b> lists every verb: click <b>Try</b> to load an example, or
+       <b>Docs</b> to read what it does.</p>
+    <div class="tip">Tip: a list as the first argument applies a verb to several
+       columns — <code>round([inntekt, formue], to=1000)</code>. Any verb may carry an
+       <code>apply_</code> prefix.</div>
+  </div>
+  <div class="foot"><button class="got" id="welcomeGot">Got it</button></div>
+</dialog>
+
+<div class="layout">
+  <main>
+    <p class="brief">Type SDC verbs (one per line). Set the <code>unit_id</code> for
+       per-unit random verbs. Output updates live.</p>
+    <div class="controls">
+      <div class="ctl"><label>dataset</label><input id="dataset" value="main"></div>
+      <div class="ctl"><label>unit_id (default)</label><input id="unitid" value="PERSONID_1"></div>
+      <div class="ctl"><label>seed (base)</label><input id="seed" value="0" style="width:80px"></div>
+    </div>
+
+    <div class="card editor">
+      <div class="card-bar"><h3>SDC script</h3>
+        <button class="run" id="runBtn">Run &#9654;</button>
+        <button class="sec" id="resetBtn">Reset</button>
+        <span class="meta" id="editorMeta"></span>
+      </div>
+      <textarea id="editor" spellcheck="false"></textarea>
+    </div>
+
+    <div class="card">
+      <div class="card-bar"><h3>Generated microdata</h3><span class="meta" id="outMeta"></span></div>
+      <pre class="out" id="out"></pre>
+    </div>
+
+    <div class="card">
+      <div class="card-bar"><h3>Effect on sample data</h3><span class="meta">simulated · changed cells highlighted</span></div>
+      <div class="simwrap" id="simWrap"></div>
+      <div class="simnote" id="simNote"></div>
+    </div>
+
+    <div class="card warns" id="warnsBox">
+      <div class="hd"><span class="dot"></span><span id="warnsHd">Warnings</span></div>
+      <ul id="warns"></ul>
+    </div>
+  </main>
+
+  <aside>
+    <h2>Verbs</h2>
+    <div id="verblist"></div>
+  </aside>
+</div>
+
+<script>
+/* ────────────────────────────────────────────────────────────────────────────
+   p2m translator — faithful JS port of p2m/commands.py + __init__.py.
+   Keep parallel to the Python; that file is canonical.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+const TIER_C = {
+  swap:"no shuffle / sort-pairing / RNG for value exchange",
+  pseudonymize:"IDs are write-protected pseudonyms; data is already pseudonymized at source",
+  insert:"no row-append command (decoy rows cannot be created)",
+  suppress:"output protection is applied automatically by the platform (Tiltak 2-10)",
+};
+const TIER_B = {
+  profile:"macro expansion of constituent verbs",
+};
+
+/* ── value parsing ─────────────────────────────────────────────────────────── */
+function splitTop(s){                       // split on top-level commas
+  const out=[]; let d=0,q=null,cur="";
+  for(let i=0;i<s.length;i++){const c=s[i];
+    if(q){cur+=c; if(c===q)q=null; continue;}
+    if(c==='"'||c==="'"){q=c;cur+=c;continue;}
+    if(c==='('||c==='['||c==='{'){d++;cur+=c;continue;}
+    if(c===')'||c===']'||c==='}'){d--;cur+=c;continue;}
+    if(c===','&&d===0){out.push(cur);cur="";continue;}
+    cur+=c;
+  }
+  if(cur.trim()!=="")out.push(cur);
+  return out;
+}
+function kwSplit(arg){                       // -> [key|null, valueText]
+  let d=0,q=null;
+  for(let i=0;i<arg.length;i++){const c=arg[i],p=arg[i-1],n=arg[i+1];
+    if(q){if(c===q)q=null;continue;}
+    if(c==='"'||c==="'"){q=c;continue;}
+    if(c==='('||c==='['||c==='{')d++; else if(c===')'||c===']'||c==='}')d--;
+    else if(c==='='&&d===0&&n!=='='&&!'<>!='.includes(p||'')){
+      const key=arg.slice(0,i).trim();
+      if(/^[A-Za-z_]\w*$/.test(key))return [key,arg.slice(i+1).trim()];
+    }
+  }
+  return [null,arg.trim()];
+}
+function parseValue(s){
+  s=s.trim();
+  if(s==="")return undefined;
+  if(s[0]==='{'&&s.endsWith('}')){                 // dict literal -> {__pairs:[[k,v],...]}
+    const pairs=[];
+    for(const part of splitTop(s.slice(1,-1))){
+      if(part.trim()==="")continue;
+      let d=0,q=null,ci=-1;
+      for(let i=0;i<part.length;i++){const c=part[i];
+        if(q){if(c===q)q=null;continue;}
+        if(c==='"'||c==="'"){q=c;continue;}
+        if(c==='('||c==='['||c==='{')d++; else if(c===')'||c===']'||c==='}')d--;
+        else if(c===':'&&d===0){ci=i;break;}}
+      if(ci>=0)pairs.push([parseValue(part.slice(0,ci)),parseValue(part.slice(ci+1))]);
+    }
+    return {__pairs:pairs};
+  }
+  if((s[0]==='('&&s.endsWith(')'))||(s[0]==='['&&s.endsWith(']')))
+    return splitTop(s.slice(1,-1)).map(parseValue);
+  if(/^-?\d+$/.test(s))return parseInt(s,10);
+  if(/^-?\d*\.\d+$/.test(s))return parseFloat(s);
+  if((s[0]==='"'&&s.endsWith('"'))||(s[0]==="'"&&s.endsWith("'")))return s.slice(1,-1);
+  if(s==='True')return true; if(s==='False')return false; if(s==='None')return null;
+  return s;                                  // bare identifier (e.g. by=kommune)
+}
+const PREFIXES=['apply_','scrub_','sdc_'];
+function canonical(v){for(const p of PREFIXES)if(v.startsWith(p))return v.slice(p.length);return v;}
+function parseCall(line){
+  const m=line.match(/^\s*([A-Za-z_][\w-]*)\s*\((.*)\)\s*$/s);
+  if(!m)return null;
+  const verb=m[1].replace(/-/g,'_');   // hyphen tolerance: apply-round -> apply_round
+  const args=splitTop(m[2]);
+  let cols=[null]; const kwargs={}; const pos=[]; let posSeen=false;
+  for(const a of args){
+    if(a.trim()==="")continue;
+    const [k,v]=kwSplit(a);
+    if(k){kwargs[k]=parseValue(v); continue;}
+    let c=parseValue(v);
+    if(!posSeen){cols=Array.isArray(c)?c.map(String):[String(c)]; posSeen=true;}
+    else pos.push(c);
+  }
+  if(pos.length)kwargs._pos=pos;
+  return {verb,cols,kwargs,src:line.trim()};
+}
+
+/* ── ctx + helpers ─────────────────────────────────────────────────────────── */
+function makeCtx(opts){
+  return {warnings:[], dataset:opts.dataset||'main', unit_id:opts.unit_id||null,
+    seed:opts.seed||0, _t:0, _sn:0,
+    tmp(s){this._t++;return 'protect2micro_'+s+this._t;}, warn(m){this.warnings.push(m);},
+    nextSeed(){const s=this.seed+this._sn*1000;this._sn++;return s;}};
+}
+const has=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
+const target=(col,kw)=> has(kw,'into')&&kw.into ? ['generate',kw.into] : ['replace',col];
+const agg=(stat,col,dest,by)=>`aggregate (${stat}) ${col} -> ${dest}`+(by?`, by(${by})`:``);
+const seedOf=(kw,ctx)=> has(kw,'seed')?kw.seed : (has(kw,'random_state')?kw.random_state:ctx.nextSeed());
+function warnRng(verb,kw,ctx){
+  for(const a of ['share','random_state'])
+    if(has(kw,a))ctx.warn(`${verb}: '${a}' ignored — microdata cannot apply a partial/seeded *value* transform (no value-level RNG). The whole column is transformed.`);
+}
+const DATE_PERIODS=['year','month','quarter','halfyear','week','day','dow','doy'];
+const PCTL={0.25:'p25',0.5:'median',0.75:'p75'};
+const UNIT_DIV={days:null,months:30.44,years:365.25};
+const isNum=v=>typeof v==='number';
+const given=v=>v!==undefined&&v!==null;
+
+/* ── emitters ──────────────────────────────────────────────────────────────── */
+function round_(col,kw,ctx){    // 'round': round to nearest multiple (numeric)
+  warnRng('round',kw,ctx); const [k,t]=target(col,kw); const to=kw.to;
+  if(!given(to)){ctx.warn("round: 'to' required (the multiple to round to, e.g. to=1000).");return ["// round: missing 'to'"];}
+  if(typeof to==='string'){ctx.warn("round: 'to' must be numeric; for dates use round_date(col, to='year').");return ["// round: 'to' must be numeric (use round_date for dates)"];}
+  return [`${k} ${t} = round(${col}, ${to})`];
+}
+function round_date(col,kw,ctx){
+  const [k,t]=target(col,kw); let to=has(kw,'to')?kw.to:'year';
+  if(!DATE_PERIODS.includes(to)){ctx.warn(`round_date: to=${JSON.stringify(to)} is not a period; using 'year'. Options: ${DATE_PERIODS.join(', ')}.`);to='year';}
+  return [`${k} ${t} = ${to}(${col})`];
+}
+function microaggregate(col,kw,ctx){
+  let stat=has(kw,'stat')?kw.stat:'mean'; const by=kw.by||kw.unit_id||ctx.unit_id;
+  if(!by){ctx.warn("microaggregate: 'by' (the grouping) required.");return ["// microaggregate: 'by' required"];}
+  if(!['mean','median','min','max','p25','p75','sum'].includes(stat)){ctx.warn(`microaggregate: stat=${JSON.stringify(stat)} unsupported; using mean.`);stat='mean';}
+  const g=ctx.tmp('ma');
+  return [agg(stat,col,g,by),`replace ${col} = ${g}`,`drop ${g}`];
+}
+function function_(col,kw,ctx){   // 'function': apply any microdata function (escape hatch)
+  const pos=kw._pos||[]; const func=has(kw,'func')?kw.func:(pos.length?pos[0]:null);
+  if(!func){ctx.warn("function: needs a function name, e.g. function(x, round, 1000).");return ["// function: missing function name"];}
+  const extra=pos.slice(1); const [k,t]=target(col,kw);
+  const inner=[col].concat(extra.map(mval)).join(', ');
+  return [`${k} ${t} = ${func}(${inner})`];
+}
+function emitLabels(ctx,v,labels){   // define-labels + assign-labels
+  const entries=labels.__pairs?labels.__pairs:Object.entries(labels);   // user dict vs auto
+  const name=ctx.tmp('lab');
+  const pairs=entries.map(([k,t])=>`${numFmt(Number(k))} "${t}"`).join(' ');
+  return [`define-labels ${name} ${pairs}`,`assign-labels ${v} ${name}`];
+}
+function cutsRecode(col,kw,ctx,cuts){   // integer bands + open ends + optional labels
+  const tgt=kw.into||col, n=cuts.length, labels={};
+  const rules=[`(min/${numFmt(cuts[0]-1)} = 0)`]; labels[0]=`<${numFmt(cuts[0])}`;
+  for(let i=0;i<n-1;i++){rules.push(`(${numFmt(cuts[i])}/${numFmt(cuts[i+1]-1)} = ${i+1})`);labels[i+1]=`${numFmt(cuts[i])}-${numFmt(cuts[i+1]-1)}`;}
+  rules.push(`(${numFmt(cuts[n-1])}/max = ${n})`); labels[n]=`${numFmt(cuts[n-1])}+`;
+  const lines=[];
+  if(kw.into)lines.push(`clone-variables ${col} -> ${tgt}`);
+  lines.push(`recode ${tgt} ${rules.join(' ')}`);
+  if(kw.labels===true)lines.push(...emitLabels(ctx,tgt,labels));
+  else if(kw.labels&&typeof kw.labels==='object')lines.push(...emitLabels(ctx,tgt,kw.labels));
+  return lines;
+}
+function bin(col,kw,ctx){
+  warnRng('bin',kw,ctx);
+  let cuts=null; const edges=kw.edges, start=kw.start,stop=kw.stop,width=kw.width;
+  if(edges!==undefined)cuts=edges.slice();
+  else if(start!==undefined&&stop!==undefined&&width!==undefined){cuts=[];let c=start;while(c<stop){cuts.push(c);c+=width;}cuts.push(stop);}
+  if(cuts!==null){ if(cuts.length<2){ctx.warn("bin: need at least two cut points.");return ["// bin: need at least two cut points"];}
+    return cutsRecode(col,kw,ctx,cuts); }
+  const [k,t]=target(col,kw);
+  if(width!==undefined){const lo=ctx.tmp('lo');return [agg('min',col,lo,null),`${k} ${t} = floor((${col} - ${lo}) / ${width})`,`drop ${lo}`];}
+  const method=has(kw,'method')?kw.method:'quantile'; const bins=has(kw,'bins')?kw.bins:10;
+  if(method==='equal_width'||method==='width'){
+    const lo=ctx.tmp('lo'),hi=ctx.tmp('hi'),w=ctx.tmp('w');
+    return [agg('min',col,lo,null),agg('max',col,hi,null),`generate ${w} = (${hi} - ${lo}) / ${bins}`,
+      `${k} ${t} = floor((${col} - ${lo}) / ${w})`,`drop ${lo} ${hi} ${w}`];}
+  if(method!=='quantile')ctx.warn(`bin: method=${JSON.stringify(method)} unknown; using quantile.`);
+  return [`${k} ${t} = quantile(${col}, ${bins})`];
+}
+function freqCond(col,ctx,minv){   // [lines, condition, drops] for count<minv / proportion<minv
+  const one=ctx.tmp('one'),cnt=ctx.tmp('cnt'); const lines=[`generate ${one} = 1`,agg('count',one,cnt,col)]; const drops=[one,cnt];
+  if(minv>0&&minv<1){const tot=ctx.tmp('tot');lines.push(agg('count',one,tot,one));drops.push(tot);return [lines,`${cnt} < ${minv} * ${tot}`,drops];}
+  return [lines,`${cnt} < ${minv}`,drops];
+}
+function reduce_categories(col,kw,ctx){   // merge rare categories into one
+  const minv=kw.min;
+  if(minv===undefined){ctx.warn("reduce_categories: needs min= (int = count, 0<x<1 = proportion).");return ["// reduce_categories: missing min="];}
+  const to=('to'in kw)?kw.to:'Other'; const vexpr=(to===null||to===undefined)?'.':mval(to);
+  const [lines,cond,drops]=freqCond(col,ctx,minv);
+  lines.push(`replace ${col} = ${vexpr} if ${cond}`,'drop '+drops.join(' '));
+  return lines;
+}
+function change(col,kw,ctx){   // set value where a condition holds (incl. other variables)
+  const pos=kw._pos||[]; const hasValue=('value'in kw)||('to'in kw)||pos.length>=1;
+  const value=('value'in kw)?kw.value:('to'in kw)?kw.to:(pos.length?pos[0]:undefined);
+  if(!hasValue){ctx.warn('change: needs a value, e.g. change(x, "Y", where="…"). None = missing.');return ["// change: missing value"];}
+  const where=kw.where;
+  if(!where){ctx.warn("change: needs where= (a condition). For rare categories use reduce_categories.");return ["// change: needs where="];}
+  const vexpr=(value===null||value===undefined)?'.':mval(value);
+  return [`replace ${col} = ${vexpr} if ${where}`];
+}
+function recode(col,kw,ctx){
+  let rules=kw.rules; if(rules===undefined){const pos=kw._pos||[];rules=pos.length?pos[0]:null;}
+  if(!rules){ctx.warn('recode: needs rules, e.g. recode(x, "(1/7 = 0)") or recode(x, {1: 0, 2: 0}).');return ["// recode: missing rules"];}
+  if(rules&&typeof rules==='object'&&rules.__pairs)rules=rules.__pairs.map(([k,v])=>`(${mval(k)} = ${mval(v)})`).join(' ');   // dict → rules
+  const tgt=kw.into||col, lines=[];
+  if(kw.into)lines.push(`clone-variables ${col} -> ${tgt}`);
+  lines.push(`recode ${tgt} ${rules}`);
+  if(kw.labels&&typeof kw.labels==='object')lines.push(...emitLabels(ctx,tgt,kw.labels));
+  return lines;
+}
+function shorten(col,kw,ctx){const keep=has(kw,'keep')?kw.keep:3; if(has(kw,'min_count'))ctx.warn("shorten: rarity-cascade ('min_count') needs counts — emitting fixed-length truncation only."); const [k,t]=target(col,kw); return [`${k} ${t} = substr(${col}, 1, ${keep})`];}
+function eliminate(col,kw,ctx){   // drop ROWS: where= (conditional) or min= (rare records)
+  const minv=kw.min;
+  if(minv!==undefined){
+    if(!col){ctx.warn("eliminate(min=): needs a column (the category to count).");return ["// eliminate: min needs a column"];}
+    const [lines,cond,drops]=freqCond(col,ctx,minv);
+    lines.push(`drop if ${cond}`,'drop '+drops.join(' '));
+    return lines;}
+  const where=kw.where;
+  if(!given(where)){ctx.warn("eliminate: needs where= (drop rows) or min= (drop rare records).");return ["// eliminate: needs where= or min="];}
+  return [`drop if ${where}`];
+}
+const PRIMES=[1,31,97,131,197,241,313,397];
+function jitter(col,kw,ctx){
+  const seed=seedOf(kw,ctx); const dist=has(kw,'dist')?kw.dist:'uniform';
+  let key=has(kw,'key')?kw.key:col; const cols=Array.isArray(key)?key:[key];
+  let kexpr=cols.map((c,i)=>PRIMES[i]===1?`${c}`:`${c}*${PRIMES[i]}`).join(' + ');
+  if(seed)kexpr+=` + ${seed}`;
+  const k=ctx.tmp('k'),ua=ctx.tmp('ua'); let lines=[],drops=[k,ua];
+  const scale=has(kw,'scale')?kw.scale:'auto'; let pre=[],scaleExpr;
+  if(isNum(scale)){scaleExpr=String(scale);}
+  else{const lo=ctx.tmp('lo'),hi=ctx.tmp('hi'),sc=ctx.tmp('sc');
+    pre=[agg('min',col,lo,null),agg('max',col,hi,null),`generate ${sc} = (${hi} - ${lo}) * 0.01`];scaleExpr=sc;drops.push(lo,hi,sc);}
+  lines.push(`generate ${k} = ${kexpr}`,`generate ${ua} = sin(${k} * 12.9898) * 43758.5453`,`replace ${ua} = ${ua} - floor(${ua})`);
+  if(dist==='normal'){const ub=ctx.tmp('ub'),z=ctx.tmp('z');
+    lines.push(`generate ${ub} = sin(${k} * 78.233) * 43758.5453`,`replace ${ub} = ${ub} - floor(${ub})`,
+      `generate ${z} = sqrt(-2*ln(${ua})) * cos(2*pi()*${ub})`,`replace ${col} = ${col} + ${z} * ${scaleExpr}`);drops.push(ub,z);}
+  else lines.push(`replace ${col} = ${col} + (${ua} - 0.5) * 2 * ${scaleExpr}`);
+  return pre.concat(lines,['drop '+drops.join(' ')]);
+}
+// The one constructible RNG: each seeded `sample` round is a Bernoulli(p) bit;
+// weighting + summing repeated rounds gives whole families of distributions.
+const RAND_DISTS=['bernoulli','binomial','normal','uniform_int','uniform','uniform_sym'];
+function numFmt(x){return (typeof x==='number'&&Number.isInteger(x))?String(x):String(x);}
+function randSeries(ctx,{dist,rounds,level,key,ds,seed,p=0.5,dest=null}){
+  // clone-units yields an EMPTY dataset (can't sample/generate); and you can't
+  // `keep` the id (key var, auto-retained). So generate a marker (=1), clone,
+  // keep the marker (id follows), clone that small source per round, drop marker.
+  if(dist==='bernoulli')rounds=1; rounds=Math.max(1,parseInt(rounds,10));
+  const mark=ctx.tmp('mark'),src=ctx.tmp('src');
+  let lines=[`generate ${mark} = 1`,`clone-dataset ${ds} ${src}`,`use ${src}`,`keep ${mark}`],bits=[];
+  for(let i=0;i<rounds;i++){const rnd=ctx.tmp('round'),bit=ctx.tmp('bit');
+    lines.push(`clone-dataset ${src} ${rnd}`,`use ${rnd}`,`sample ${p} ${seed+i}`,`generate ${bit} = 1`,
+      `merge ${bit} into ${ds} on ${key}`,`use ${ds}`,`recode ${bit} (missing = 0)`,`delete-dataset ${rnd}`);
+    bits.push(bit);}
+  lines.push(`delete-dataset ${src}`);
+  let weights;
+  if(dist==='uniform_int')weights=bits.map((_,i)=>Math.pow(2,i));
+  else if(dist==='uniform'||dist==='uniform_sym')weights=bits.map((_,i)=>Math.pow(0.5,i+1));
+  else weights=bits.map(()=>1);
+  const terms=bits.map((b,i)=>weights[i]===1?b:`${b}*${weights[i]}`);
+  const total=terms.join(' + ');
+  const out=dest||ctx.tmp('rand');
+  if(dist==='normal'){const mean=rounds*p, sd=Math.sqrt(rounds*p*(1-p));
+    lines.push(`generate ${out} = (${total} - ${numFmt(mean)}) / ${numFmt(Math.round(sd*1e6)/1e6)}`);}
+  else if(dist==='uniform_sym')lines.push(`generate ${out} = (${total}) * 2 - 1`);
+  else lines.push(`generate ${out} = ${total}`);
+  return [lines,out,bits.concat([mark])];   // mark dropped from ds by the caller
+}
+function digitRandom(ctx,fromCol,mod,dist,dest){
+  if(dist!=='uniform'&&dist!=='uniform_sym'){ctx.warn(`digits source: dist=${JSON.stringify(dist)} not meaningful from one column; using 'uniform_sym'.`);dist='uniform_sym';}
+  const mv=ctx.tmp('dig'),out=dest||ctx.tmp('rand');
+  const lines=[`generate ${mv} = ${fromCol} - floor(${fromCol} / ${mod}) * ${mod}`];
+  if(dist==='uniform')lines.push(`generate ${out} = ${mv} / ${mod}`);
+  else lines.push(`generate ${out} = (${mv} / ${mod}) * 2 - 1`);
+  return [lines,out,[mv]];
+}
+function buildRandom(ctx,o){   // o: {source,dist,rounds,level,key,ds,seed,p,fromCol,mod,digitWeight,dest}
+  if(o.source==='digits'){
+    if(!o.fromCol){ctx.warn("source='digits' needs from_col=<column>.");return [["// random: from_col required for source='digits'"],null,[]];}
+    return digitRandom(ctx,o.fromCol,o.mod,o.dist,o.dest);}
+  if(o.source==='hybrid'){
+    if(!o.fromCol){ctx.warn("source='hybrid' needs from_col=<column>; using sample only.");
+      return randSeries(ctx,o);}
+    const [sl,sv,sd]=randSeries(ctx,{...o,dest:null});
+    const [dl,dv,dd]=digitRandom(ctx,o.fromCol,o.mod,'uniform_sym',null);
+    const out=o.dest||ctx.tmp('rand');
+    return [sl.concat(dl,[`generate ${out} = ${sv} + ${o.digitWeight}*${dv}`]),out,sd.concat(dd,[sv,dv])];}
+  return randSeries(ctx,o);
+}
+function noiseApply(col,z,scale,pct,defaultPct){   // scale→additive; pct→relative; else default
+  if(scale!==undefined)return `replace ${col} = ${col} + ${scale}*${z}`;
+  if(pct!==undefined)return `replace ${col} = ${col} * (1 + ${pct}*${z})`;
+  if(defaultPct===null)return `replace ${col} = ${col} + 1*${z}`;   // additive offset (reuse)
+  return `replace ${col} = ${col} * (1 + ${defaultPct}*${z})`;
+}
+function noise(col,kw,ctx){
+  const scale=kw.scale, pct=kw.pct, using=kw.using;
+  if(scale!==undefined&&!isNum(scale)){ctx.warn("noise: 'scale' must be numeric.");return ["// noise: 'scale' must be numeric"];}
+  if(using)return [noiseApply(col,using,scale,pct,null)];   // reuse: additive offset unless scale/pct
+  const source=has(kw,'source')?kw.source:'sample';
+  const dist=has(kw,'dist')?kw.dist:'uniform_sym';   // centered uniform → no spike at 0
+  const seed=seedOf(kw,ctx); const rounds=parseInt(has(kw,'rounds')?kw.rounds:12,10);
+  const unit=kw.unit_id||ctx.unit_id; const ds=kw.dataset||ctx.dataset;
+  const fromCol=kw.from_col, mod=has(kw,'mod')?kw.mod:100, digitWeight=has(kw,'digit_weight')?kw.digit_weight:0.3;
+  if((source==='sample'||source==='hybrid')&&!unit){ctx.warn("noise: 'unit_id' required (merge key, or set it on transform), or pass using=<draw column> / source='digits'.");return ["// noise: 'unit_id' required (or using= / source='digits')"];}
+  const [lines,z,drops]=buildRandom(ctx,{source,dist,rounds,level:'unit',key:unit,ds,seed,p:0.5,fromCol,mod,digitWeight});
+  if(z===null)return lines;
+  lines.push(noiseApply(col,z,scale,pct,0.05),`drop ${drops.concat([z]).join(' ')}`);   // relative ±5% default
+  return lines;
+}
+const WINS_DEFLIM={iqr:[1.5,1.5],gaussian:[3,3],mad:[3,3],percentile:[0.25,0.75]};
+function winsorize(col,kw,ctx){
+  const method=has(kw,'method')?kw.method:'iqr';
+  let limits=has(kw,'limits')?kw.limits:(WINS_DEFLIM[method]||[1.5,1.5]);
+  if(!Array.isArray(limits))limits=[limits,limits];
+  const lo=limits[0],hi=limits[1]; const by=kw.by;
+  if(has(kw,'share')&&kw.share!==1.0)ctx.warn("winsorize: 'share' ignored (no partial value transform in microdata).");
+  if(method==='value'){ctx.warn("winsorize: method='value' removed — use change(col, bound, where='col > bound') for manual top/bottom-coding.");
+    return ["// winsorize: method='value' removed; use change(...)"];}
+  if(method==='percentile'){const o=[],drops=[];
+    for(const [arg,cmp,side] of [[lo,'<','lo'],[hi,'>','hi']]){
+      if(!given(arg))continue; const stat=PCTL[arg];
+      if(!stat){ctx.warn(`winsorize: percentile ${arg} unavailable in microdata (only 0.25/0.5/0.75). Use method='iqr' or 'value'.`);
+        o.push(`// winsorize: percentile ${arg} unavailable (${side} skipped)`);continue;}
+      const d=ctx.tmp(side); o.push(agg(stat,col,d,by),`replace ${col} = ${d} if ${col} ${cmp} ${d}`);drops.push(d);}
+    if(drops.length)o.push('drop '+drops.join(' '));return o;}
+  let lines=[],drops=[],loBase,hiBase,spread,center;
+  if(method==='gaussian'){center=ctx.tmp('m');spread=ctx.tmp('s');lines.push(agg('mean',col,center,by),agg('sd',col,spread,by));loBase=hiBase=center;drops.push(center,spread);}
+  else if(method==='iqr'){const q1=ctx.tmp('q1'),q3=ctx.tmp('q3');spread=ctx.tmp('iqr');lines.push(agg('p25',col,q1,by),agg('p75',col,q3,by),`generate ${spread} = ${q3} - ${q1}`);loBase=q1;hiBase=q3;drops.push(q1,q3,spread);}
+  else if(method==='mad'){center=ctx.tmp('med');const ad=ctx.tmp('ad');spread=ctx.tmp('mad');lines.push(agg('median',col,center,by),`generate ${ad} = abs(${col} - ${center})`,agg('median',ad,spread,by));loBase=hiBase=center;drops.push(center,ad,spread);}
+  else{ctx.warn(`winsorize: unknown method ${JSON.stringify(method)}`);return [`// winsorize: unknown method`];}
+  if(given(lo)){const lv=ctx.tmp('lo');lines.push(`generate ${lv} = ${loBase} - ${lo}*${spread}`,`replace ${col} = ${lv} if ${col} < ${lv}`);drops.push(lv);}
+  if(given(hi)){const hv=ctx.tmp('hi');lines.push(`generate ${hv} = ${hiBase} + ${hi}*${spread}`,`replace ${col} = ${hv} if ${col} > ${hv}`);drops.push(hv);}
+  lines.push('drop '+drops.join(' '));return lines;
+}
+const DATE_RE=/^\d{4}-\d{2}-\d{2}$/;
+const DIFF_STATS=['min','max','mean','median','p25','p75'];
+function perUnitUniform(ctx,unit,ds,seed,bits){      // thin wrapper over randSeries
+  const [lines,u,drops]=randSeries(ctx,{dist:'uniform',rounds:bits,level:'unit',key:unit,ds,seed});
+  return [lines,u,drops.concat([u])];
+}
+function draw(col,kw,ctx){
+  let dist=has(kw,'dist')?kw.dist:'uniform';
+  if(!RAND_DISTS.includes(dist)){ctx.warn(`draw: dist=${JSON.stringify(dist)} not in ${RAND_DISTS}; using 'uniform'.`);dist='uniform';}
+  const source=has(kw,'source')?kw.source:'sample';
+  const rounds=parseInt(has(kw,'rounds')?kw.rounds:8,10); const level=has(kw,'level')?kw.level:'unit';
+  const seed=seedOf(kw,ctx); const ds=kw.dataset||ctx.dataset; const p=has(kw,'p')?kw.p:0.5;
+  const fromCol=kw.from_col, mod=has(kw,'mod')?kw.mod:100, digitWeight=has(kw,'digit_weight')?kw.digit_weight:0.3;
+  const key=kw.key||kw.unit_id||ctx.unit_id;
+  if((source==='sample'||source==='hybrid')&&!key){ctx.warn("draw: a merge key is required (unit_id for level='unit', or key= for level='row').");return ["// draw: missing key (unit_id / key)"];}
+  const [lines,z,drops]=buildRandom(ctx,{source,dist,rounds,level,key,ds,seed,p,fromCol,mod,digitWeight,dest:col});
+  if(z===null)return lines;
+  lines.push('drop '+drops.join(' '));            // keep col; drop only temps
+  return lines;
+}
+function diff(col,kw,ctx){
+  const ref=has(kw,'ref')?kw.ref:'random_global'; const unit=has(kw,'unit')?kw.unit:'days';
+  const unit_id=kw.unit_id||ctx.unit_id; const ds=kw.dataset||ctx.dataset; const seed=seedOf(kw,ctx); const bits=parseInt(has(kw,'bits')?kw.bits:8,10);
+  const perUnit=typeof ref==='string'&&ref.endsWith('_per_unit')&&ref!=='random_per_unit';
+  if((perUnit||ref==='random_per_unit')&&!unit_id){ctx.warn(`diff: ref=${JSON.stringify(ref)} requires unit_id.`);return [`// diff: ref=${ref} requires unit_id`];}
+  let lines=[],drops=[],anchor=null;
+  if(perUnit){let stat=ref.slice(0,-'_per_unit'.length); if(stat==='first')stat='min';
+    if(!DIFF_STATS.includes(stat)){ctx.warn(`diff: per-unit stat ${JSON.stringify(stat)} not in ${DIFF_STATS}; using min.`);stat='min';}
+    anchor=ctx.tmp('anchor');lines.push(agg(stat,col,anchor,unit_id));drops=[anchor];}
+  else if(DIFF_STATS.includes(ref)){anchor=ctx.tmp('anchor');lines.push(agg(ref,col,anchor,null));drops=[anchor];}
+  else if(ref==='random_per_unit'){const [kl,u,kd]=perUnitUniform(ctx,unit_id,ds,seed,bits);
+    const lo=ctx.tmp('mind'),hi=ctx.tmp('maxd'),span=ctx.tmp('span');anchor=ctx.tmp('anchor');
+    lines=kl.concat([agg('min',col,lo,null),agg('max',col,hi,null),`generate ${span} = ${hi} - ${lo}`,`generate ${anchor} = ${lo} + floor(${u} * ${span})`]);
+    drops=kd.concat([lo,hi,span,anchor]);}
+  else if(ref==='random_global'){
+    let stat=has(kw,'stat')?kw.stat:'median';
+    if(!['min','max','median'].includes(stat)){ctx.warn(`diff(random_global): stat=${JSON.stringify(stat)} not in min/max/median; using median.`);stat='median';}
+    const shift=has(kw,'shift')?kw.shift:0;
+    const one=ctx.tmp('one'),med=ctx.tmp('med'),sh=ctx.tmp('shift');
+    lines.push(`generate ${one} = 1`,agg(stat,col,med,one),`let ${sh} = ${shift}   // secret offset — set to a number only you know`);
+    anchor=`(${med} + ${sh})`;drops=[one,med];}
+  else if(typeof ref==='string'&&DATE_RE.test(ref)){const [y,m,d]=ref.split('-').map(Number);anchor=`date(${y}, ${m}, ${d})`;}
+  else anchor=String(ref);
+  const div=UNIT_DIV[unit];
+  lines.push(div?`replace ${col} = (${col} - ${anchor}) / ${div}   // ${unit}, approx`:`replace ${col} = ${col} - ${anchor}`);
+  if(drops.length)lines.push('drop '+drops.join(' '));
+  return lines;
+}
+
+function diff_date(col,kw,ctx){
+  // microdata's diffable date is the integer date-value; parse an ISO string first.
+  const parse=`replace ${col} = date(to_int(substr(${col}, 1, 4)), to_int(substr(${col}, 6, 2)), to_int(substr(${col}, 9, 2)))`;
+  return [parse].concat(diff(col,kw,ctx));
+}
+function risk(col,kw,ctx){
+  let quasi=kw.quasi_ids;
+  if(!quasi){ctx.warn("risk: quasi_ids required (the columns an attacker could link on).");return ["// risk: quasi_ids required"];}
+  if(typeof quasi==='string')quasi=[quasi];
+  if(kw.unit_id||ctx.unit_id)ctx.warn("risk: per-unit k-anonymity needs count-distinct (unavailable in microdata); reporting ROW-level equivalence-class sizes instead.");
+  if(kw.sensitive)ctx.warn("risk: l-diversity (entropy over sensitive values) isn't expressible in microdata; reporting k-anonymity only.");
+  const one=ctx.tmp('one'),qkey=ctx.tmp('qkey'),cell=ctx.tmp('cell'),below=ctx.tmp('below'),uniq=ctx.tmp('uniq');
+  const keyexpr=quasi.map(q=>`string(${q})`).join(' ++ "_" ++ ');
+  return [
+    `generate ${one} = 1`,
+    `generate ${qkey} = ${keyexpr}`,
+    agg('count',one,cell,qkey),
+    `summarize ${cell}   // min = k-anonymity (smallest equivalence class)`,
+    `generate ${below} = 1 * (${cell} < 5)`,
+    `generate ${uniq} = 1 * (${cell} == 1)`,
+    `summarize ${below} ${uniq}   // means = share of rows in cells <5 / uniquely identifiable`,
+    'drop '+[one,qkey,cell,below,uniq].join(' '),
+  ];
+}
+function mval(v){return typeof v==='string'?`'${v}'`:numFmt(v);}
+
+const REGISTRY={round:round_,round_date,bin,recode,change,reduce_categories,'function':function_,shorten,eliminate,microaggregate,jitter,noise,winsorize,diff,diff_date,draw,risk};
+
+/* ── driver ────────────────────────────────────────────────────────────────── */
+function transform(src,opts){
+  const ctx=makeCtx(opts||{}); const out=[];
+  for(const raw of src.split('\n')){
+    const line=raw.trim();
+    if(line===''||line.startsWith('#')||line.startsWith('//')){ if(line)out.push(line.startsWith('//')?line:'// '+line.replace(/^#\s?/,'')); continue; }
+    const call=parseCall(line);
+    if(!call){ctx.warn(`Skipped non-call statement: ${JSON.stringify(line)}`);out.push(`// (skipped) ${line}`);continue;}
+    const {verb:rawVerb,cols,kwargs,src:s}=call; const verb=canonical(rawVerb);
+    for(const col of cols){
+      out.push(cols.length>1?`// ${rawVerb}(${col}, …)`:`// ${s}`);
+      if(REGISTRY[verb])out.push(...REGISTRY[verb](col,kwargs,ctx));
+      else if(TIER_B[verb]){ctx.warn(`${verb}: not yet implemented (pending) — ${TIER_B[verb]}`);out.push(`// PENDING: ${verb} — ${TIER_B[verb]}`);}
+      else if(TIER_C[verb]){ctx.warn(`${verb}: not expressible in microdata — ${TIER_C[verb]}`);out.push(`// UNSUPPORTED: ${verb} — ${TIER_C[verb]}`);}
+      else{ctx.warn(`Unknown verb: ${rawVerb}`);out.push(`// UNKNOWN verb: ${rawVerb}`);}
+    }
+  }
+  return {script:out.join('\n'),warnings:ctx.warnings};
+}
+
+/* ── sample data ─────────────────────────────────────────────────────────────── */
+const SAMPLE = [
+  {PERSONID_1:1,  kjonn:'1', alder:7,  inntekt:182000,  diagnose:'J45',  kommune:'0301', foedt:'2017-04-12'},
+  {PERSONID_1:2,  kjonn:'2', alder:34, inntekt:539000,  diagnose:'E11',  kommune:'4601', foedt:'1990-09-30'},
+  {PERSONID_1:3,  kjonn:'1', alder:52, inntekt:712400,  diagnose:'J45',  kommune:'0301', foedt:'1972-01-05'},
+  {PERSONID_1:4,  kjonn:'2', alder:67, inntekt:268900,  diagnose:'I21',  kommune:'1103', foedt:'1957-11-22'},
+  {PERSONID_1:5,  kjonn:'1', alder:91, inntekt:155200,  diagnose:'Z999', kommune:'5001', foedt:'1933-06-18'},
+  {PERSONID_1:6,  kjonn:'2', alder:23, inntekt:421000,  diagnose:'E11',  kommune:'4601', foedt:'2001-03-08'},
+  {PERSONID_1:7,  kjonn:'1', alder:45, inntekt:2410000, diagnose:'J45',  kommune:'0301', foedt:'1979-12-01'},
+  {PERSONID_1:8,  kjonn:'2', alder:78, inntekt:331500,  diagnose:'Q878', kommune:'1103', foedt:'1946-07-14'},
+  {PERSONID_1:9,  kjonn:'1', alder:15, inntekt:0,       diagnose:'J45',  kommune:'5001', foedt:'2009-02-27'},
+  {PERSONID_1:10, kjonn:'2', alder:60, inntekt:604800,  diagnose:'I21',  kommune:'0301', foedt:'1964-10-09'},
+  {PERSONID_1:11, kjonn:'1', alder:38, inntekt:488300,  diagnose:'E11',  kommune:'4601', foedt:'1986-05-16'},
+  {PERSONID_1:12, kjonn:'2', alder:84, inntekt:294100,  diagnose:'F200', kommune:'1103', foedt:'1940-08-03'},
+];
+const BASE_COLS = ['PERSONID_1','kjonn','alder','inntekt','diagnose','kommune','foedt'];
+
+/* ── sidebar verb catalogue ──────────────────────────────────────────────────── */
+const VERBS = [
+  {n:'round', d:'Round a number to a multiple', about:'Rounds a numeric variable to the nearest multiple of N (a coarser, less identifying value). Dates use round_date.', v:[
+    ['round(inntekt, to=1000)','round to nearest 1 000'],
+    ['round(inntekt, to=50000)','coarser — nearest 50 000'],
+    ['round(inntekt, to=1000, into=inntekt_grov)','write the result to a new variable']]},
+  {n:'round_date', d:'Truncate a date to a period', about:'Keeps only the chosen part of a date, dropping finer detail.', v:[
+    ['round_date(foedt, to="year")','keep only the year'],
+    ['round_date(foedt, to="month")','month number (1–12)'],
+    ['round_date(foedt, to="quarter")','the quarter (1–4)']]},
+  {n:'bin', d:'Bin a number into groups/bands', about:'Replaces a number with the group it falls in — equal-size groups, fixed-width bands, or your own edges.', v:[
+    ['bin(alder, bins=10)','10 equal-frequency groups (deciles)'],
+    ['bin(alder, start=10, stop=80, width=5)','5-year bands; under 10 / over 80 are open ends'],
+    ['bin(alder, start=10, stop=80, width=5, labels=True)','same, with readable labels "10-14", "<10", "80+"'],
+    ['bin(alder, edges=[0, 18, 67])','custom uneven bands (child / adult / senior)']]},
+  {n:'recode', d:'Remap by the value itself', about:'Rewrites a variable based on its OWN value — relabel categories or collapse ranges.', v:[
+    ['recode(kjonn, {2: 0})','remap values: 2 → 0'],
+    ['recode(diagnose, {"J45": "astma", "E11": "diabetes"})','relabel categories'],
+    ['recode(alder, "(0/17 = 1) (18/66 = 2) (67/max = 3)")','full microdata recode rules (ranges, *, min/max)'],
+    ['recode(kjonn, {1: 1, 2: 0}, labels={0: "kvinne", 1: "mann"})','remap and attach value labels']]},
+  {n:'change', d:'Set a value on a condition', about:'Sets a chosen value where a condition holds — the condition may use OTHER variables (which recode cannot).', v:[
+    ['change(diagnose, "X", where="alder > 90")','set when a condition on another variable holds'],
+    ['change(inntekt, None, where="inntekt > 10000000")','set to missing (top-suppress)'],
+    ['change(status, "ukjent", where="sysmiss(status)")','fill in missing values']]},
+  {n:'reduce_categories', d:'Merge rare categories', about:'Folds rarely-occurring categories into one catch-all so no category is too small.', v:[
+    ['reduce_categories(diagnose, min=3)','categories with < 3 cases → "Other"'],
+    ['reduce_categories(diagnose, min=0.1, to="Annen")','categories under 10% → "Annen"'],
+    ['reduce_categories(kommune, min=4, to="Uoppgitt")','choose the catch-all label'],
+    ['reduce_categories(diagnose, min=3, to=None)','rare categories → missing']]},
+  {n:'function', d:'Apply a microdata function', about:'Escape hatch: apply any microdata function to a column, with optional arguments.', v:[
+    ['function(inntekt, int)','truncate to an integer'],
+    ['function(inntekt, round, 10000)','a function with arguments'],
+    ['function(kommune, substr, 1, 2)','first 2 characters (county)']]},
+  {n:'shorten', d:'Keep first N characters', about:'Truncates a code to its first N characters (e.g. ICD chapter, county from municipality).', v:[
+    ['shorten(diagnose, keep=3)','keep the first 3 characters'],
+    ['shorten(kommune, keep=2)','county (2 digits) from a municipality code']]},
+  {n:'eliminate', d:'Drop rows', about:'Removes whole rows — on a condition, or records whose category is rare.', v:[
+    ['eliminate(where="alder > 89")','drop rows matching a condition'],
+    ['eliminate(diagnose, min=5)','drop records with a category seen < 5 times'],
+    ['eliminate(diagnose, min=0.01)','drop categories under 1% of all']]},
+  {n:'microaggregate', d:'Replace with a group statistic', about:'Replaces each value with its group average (or median) — a standard SDC method.', v:[
+    ['microaggregate(inntekt, by=kommune)','replace with the municipality mean'],
+    ['microaggregate(inntekt, by=kommune, stat="median")','use the group median instead']]},
+  {n:'winsorize', d:'Cap extremes', about:'Pulls outliers in to data-driven bounds, so no value is extreme. Bounds come from the data.', v:[
+    ['winsorize(inntekt)','cap at the IQR fences (default)'],
+    ['winsorize(inntekt, method="gaussian")','cap at mean ± 3·SD'],
+    ['winsorize(inntekt, method="percentile", limits=(0.25, 0.75))','cap at the quartiles'],
+    ['winsorize(inntekt, by=kommune)','bounds computed per group']]},
+  {n:'diff', d:'Value minus a reference', about:'Re-expresses a value relative to a reference — centering, within-person change, or days since an event.', v:[
+    ['diff(inntekt, ref="mean")','subtract the population mean (centering)'],
+    ['diff(alder, ref="min")','years above the youngest'],
+    ['diff_date(foedt, ref="min")','days since the earliest birth date']]},
+  {n:'noise', d:'Genuine seeded noise', about:'Adds real, reproducible random noise. Default is relative ±5 % (self-scaling).', v:[
+    ['noise(inntekt, unit_id="PERSONID_1")','relative ±5 % noise'],
+    ['noise(inntekt, scale=10000, unit_id="PERSONID_1")','absolute noise (≈ SD 10 000)'],
+    ['noise(inntekt, pct=0.1, unit_id="PERSONID_1")','±10 %']]},
+  {n:'jitter', d:'Deterministic hash-noise', about:'Cheap, reproducible noise derived from other columns. Display-only — it is reversible, not anonymisation.', v:[
+    ['jitter(inntekt, scale=5000)','small noise to break exact ties'],
+    ['jitter(inntekt, scale=5000, key=["alder","kommune"])','derive the noise from other columns']]},
+  {n:'draw', d:'Reusable random column', about:'Builds a named random column once, so it can be reused across variables (correlated noise, or one shared shift).', v:[
+    ['draw(z, dist="normal", unit_id="PERSONID_1")','build a reusable random column z'],
+    ['noise(inntekt, using=z)','reuse z (same draw → correlated)']]},
+  {n:'risk', d:'k-anonymity measurement', about:'Measures disclosure risk: the smallest group sharing the same quasi-identifiers (k-anonymity). Non-destructive.', v:[
+    ['risk(quasi_ids=["kjonn","kommune","alder"])','k-anonymity for these quasi-identifiers']]},
+];
+
+/* ── data simulator (deterministic verbs; others noted) ───────────────────────── */
+const isN = v => typeof v === 'number' && !isNaN(v);
+const mean = a => a.reduce((s,x)=>s+x,0)/a.length;
+const median = a => { const s=[...a].sort((x,y)=>x-y); const m=s.length>>1; return s.length%2?s[m]:(s[m-1]+s[m])/2; };
+const quantileVal = (a,q)=>{ const s=[...a].sort((x,y)=>x-y); const i=q*(s.length-1); const lo=Math.floor(i); return s[lo]+(s[Math.ceil(i)]-s[lo])*(i-lo); };
+const stdev = a => { const m=mean(a); return Math.sqrt(mean(a.map(x=>(x-m)**2))); };
+
+function evalCond(row, expr){
+  try{
+    const strs=[]; let js=expr.replace(/'[^']*'/g,m=>{strs.push("'"+m.slice(1,-1)+"'");return '@@'+(strs.length-1)+'@@';});
+    js=js.replace(/inlist\(([^)]*)\)/g,(m,g)=>{const p=g.split(',').map(s=>s.trim());return '['+p.slice(1).join(',')+'].includes('+p[0]+')';});
+    js=js.replace(/inrange\(([^)]*)\)/g,(m,g)=>{const p=g.split(',').map(s=>s.trim());return '('+p[0]+'>='+p[1]+' && '+p[0]+'<='+p[2]+')';});
+    js=js.replace(/sysmiss\(([^)]*)\)/g,(m,g)=>'('+g.trim()+'==null)');
+    js=js.replace(/&/g,'&&').replace(/\|/g,'||');
+    js=js.replace(/[A-Za-z_]\w*/g, id=> (id in row)?'row['+JSON.stringify(id)+']':id);
+    js=js.replace(/@@(\d+)@@/g,(m,i)=>strs[i]);
+    return !!Function('row','return ('+js+')')(row);
+  }catch(e){ return null; }
+}
+const FN = {int:v=>Math.trunc(v), floor:v=>Math.floor(v), ceil:v=>Math.ceil(v), abs:v=>Math.abs(v),
+  ln:v=>Math.log(v), sqrt:v=>Math.sqrt(v), log10:v=>Math.log10(v),
+  round:(v,m)=>m?Math.round(v/m)*m:Math.round(v), substr:(v,p,l)=>String(v).substr(p-1,l)};
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+const toDays = v => { const d=new Date(String(v)+'T00:00:00Z'); return isNaN(d)?null:Math.round(d.getTime()/86400000); };
+const DATEF = {year:d=>d.getUTCFullYear(), month:d=>d.getUTCMonth()+1, quarter:d=>Math.floor(d.getUTCMonth()/3)+1,
+  halfyear:d=>Math.floor(d.getUTCMonth()/6)+1, day:d=>d.getUTCDate(), dow:d=>d.getUTCDay()||7,
+  week:d=>Math.ceil((d.getUTCDate())/7), doy:d=>1};
+function litVal(t){ t=String(t).trim(); if(/^-?\d+(\.\d+)?$/.test(t))return Number(t); if(/^['"].*['"]$/.test(t))return t.slice(1,-1); return t; }
+function parseRecodeRules(s){ const out=[]; const re=/\(([^=]+?)=\s*([^)]*)\)/g; let m; while((m=re.exec(s)))out.push([m[1].trim(),m[2].trim().split(/\s+/)[0]]); return out; }
+function applyRecode(v, rules){
+  for(const [lhs,rhs] of rules){ const out=litVal(rhs);
+    if(lhs==='*')return out;
+    if(lhs==='nonmissing'){ if(v!=null&&v!=='')return out; continue; }
+    if(lhs==='missing'){ if(v==null||v==='')return out; continue; }
+    if(lhs.includes('/')){ const [a,b]=lhs.split('/').map(x=>x.trim());
+      const lo=a==='min'?-Infinity:litVal(a), hi=b==='max'?Infinity:litVal(b);
+      if(typeof v==='number'&&v>=lo&&v<=hi)return out; continue; }
+    if(String(v)===String(litVal(lhs)))return out;
+  }
+  return v;
+}
+
+// returns {rows, dropped:Set(id), changed:Set(col), newCols:[], notes:[verb,...]}
+function simulate(src){
+  let rows = SAMPLE.map(r=>({...r}));
+  const changed=new Set(), newCols=[], notes=[], info=[]; let dropped=new Set();
+  for(const raw of src.split('\n')){
+    const line=raw.trim(); if(!line||line.startsWith('#')||line.startsWith('//'))continue;
+    const call=parseCall(line); if(!call)continue;
+    const verb=canonical(call.verb), kw=call.kwargs, cols=call.cols.filter(c=>c!==null);
+    if(verb==='eliminate'){
+      const r2=simEliminate(rows,cols,kw);
+      if(r2){ for(const r of rows) if(!r2.includes(r)) dropped.add(r.PERSONID_1); rows=r2; }
+      else notes.push(verb);
+      continue;
+    }
+    if(verb==='risk'){
+      const q=kw.quasi_ids;
+      if(Array.isArray(q)){ const cnt={}; rows.forEach(r=>{const k=q.map(c=>r[c]).join('|');cnt[k]=(cnt[k]||0)+1;});
+        const sizes=Object.values(cnt); const k=Math.min(...sizes), u=sizes.filter(x=>x===1).length;
+        info.push('risk ['+q.join(', ')+']: k-anonymity = '+k+' (smallest group), '+u+' uniquely identifiable'); }
+      else notes.push(verb);
+      continue;
+    }
+    try{ if(!simStep(rows,verb,cols,kw,changed,newCols)) notes.push(verb); }
+    catch(e){ notes.push(verb); }
+  }
+  return {rows,dropped,changed,newCols,notes:[...new Set(notes)],info};
+}
+
+function simEliminate(rows,cols,kw){
+  if(kw.min!==undefined){ const col=cols[0]; if(!col)return null;
+    const cnt={}; rows.forEach(r=>cnt[r[col]]=(cnt[r[col]]||0)+1);
+    const thr=(kw.min>0&&kw.min<1)?kw.min*rows.length:kw.min;
+    return rows.filter(r=>cnt[r[col]]>=thr); }
+  if(kw.where) return rows.filter(r=>{const v=evalCond(r,kw.where);return v===null?true:!v;});
+  return null;
+}
+
+function simStep(rows,verb,cols,kw,changed,newCols){
+  const mark=c=>{changed.add(c); if(!BASE_COLS.includes(c)&&!newCols.includes(c))newCols.push(c);};
+  const each=(fn)=>{ const tgt=kw.into; for(const col of cols){ for(const r of rows){ const nv=fn(r[col],r); if(nv!==undefined)r[tgt||col]=nv; } mark(tgt||col);} };
+  switch(verb){
+    case 'round': { const to=kw.to; if(!isN(to))return false; each(v=>isN(v)?Math.round(v/to)*to:v); return true; }
+    case 'shorten': { const k=kw.keep??3; each(v=>String(v).slice(0,k)); return true; }
+    case 'function': { const pos=kw._pos||[]; const f=pos[0]; const args=pos.slice(1); if(!FN[f])return false;
+      const tgt=kw.into; if(tgt){for(const col of cols){for(const r of rows)r[tgt]=FN[f](r[col],...args);} mark(tgt); return true;}
+      each(v=>FN[f](v,...args)); return true; }
+    case 'round_date': { const to=kw.to||'year'; const f=DATEF[to]; if(!f)return false;
+      each(v=>{ const d=new Date(String(v)+'T00:00:00Z'); return isNaN(d)?v:f(d); }); return true; }
+    case 'recode': { let rules=kw.rules; const pos=kw._pos||[]; if(rules===undefined)rules=pos[0];
+      if(rules&&rules.__pairs){ const m={}; rules.__pairs.forEach(([a,b])=>m[a]=b); each(v=>(v in m)?m[v]:v); return true; }
+      if(typeof rules==='string'){ const rs=parseRecodeRules(rules); each(v=>applyRecode(v,rs)); return true; }
+      return false; }
+    case 'jitter': { const col=cols[0]; const scale=kw.scale; if(!isN(scale))return false;
+      let key=kw.key||col; const keys=Array.isArray(key)?key:[key]; const primes=[1,31,97,131,197,241]; const seed=kw.seed||0;
+      each((v,r)=>{ if(!isN(v))return v; let k=seed; keys.forEach((c,i)=>k+=(Number(r[c])||0)*(primes[i]||1));
+        let u=Math.sin(k*12.9898)*43758.5453; u-=Math.floor(u); return Math.round(v+(u-0.5)*2*scale); }); return true; }
+    case 'draw': { const name=cols[0]; if(!name)return false; const dist=kw.dist||'uniform'; const rnd=mulberry32((kw.seed||0)+1);
+      for(const r of rows){ const u=rnd(); r[name]= dist==='normal'? +((u*2-1)*1.7).toFixed(2) : (dist==='uniform_sym'? +(u*2-1).toFixed(2) : +u.toFixed(2)); }
+      mark(name); return true; }
+    case 'diff_date': { const col=cols[0]; const days=rows.map(r=>toDays(r[col])); const valid=days.filter(d=>d!=null);
+      if(!valid.length)return false; const ref=kw.ref||'random_global';
+      const stats={mean,median,min:a=>Math.min(...a),max:a=>Math.max(...a),first_per_unit:a=>Math.min(...a)};
+      const f=stats[ref]; if(!f)return false; const a=f(valid);
+      rows.forEach((r,i)=>{ if(days[i]!=null)r[col]=days[i]-a; }); mark(col); return true; }
+    case 'change': { const pos=kw._pos||[]; const val=('value'in kw)?kw.value:('to'in kw)?kw.to:pos[0];
+      if(!kw.where)return false; const col=cols[0]; let any=false;
+      for(const r of rows){ const c=evalCond(r,kw.where); if(c===null)return false; if(c){r[col]=(val===null||val===undefined)?null:val;any=true;} }
+      mark(col); return true; }
+    case 'reduce_categories': { const col=cols[0]; const minv=kw.min; if(minv===undefined)return false;
+      const cnt={}; rows.forEach(r=>cnt[r[col]]=(cnt[r[col]]||0)+1); const thr=(minv>0&&minv<1)?minv*rows.length:minv;
+      const to=('to'in kw)?kw.to:'Other'; for(const r of rows) if(cnt[r[col]]<thr) r[col]=(to===null)?null:to; mark(col); return true; }
+    case 'microaggregate': { const col=cols[0]; const by=kw.by||kw.unit_id; const stat=kw.stat||'mean'; if(!by)return false;
+      const g={}; rows.forEach(r=>{(g[r[by]]=g[r[by]]||[]).push(r[col]);});
+      const agg=stat==='median'?median:mean; const gv={}; for(const k in g)gv[k]=agg(g[k].filter(isN));
+      for(const r of rows) r[col]=Math.round(gv[r[by]]); mark(col); return true; }
+    case 'winsorize': { const col=cols[0]; const vals=rows.map(r=>r[col]).filter(isN); const method=kw.method||'iqr';
+      let lo,hi; if(method==='iqr'){const q1=quantileVal(vals,.25),q3=quantileVal(vals,.75),iqr=q3-q1;lo=q1-1.5*iqr;hi=q3+1.5*iqr;}
+      else if(method==='gaussian'){const m=mean(vals),s=stdev(vals);lo=m-3*s;hi=m+3*s;}
+      else if(method==='percentile'){lo=quantileVal(vals,.25);hi=quantileVal(vals,.75);}
+      else return false;
+      each(v=>isN(v)?Math.round(Math.min(Math.max(v,lo),hi)):v); return true; }
+    case 'diff': { const col=cols[0]; const ref=kw.ref||'random_global';
+      const stats={mean,median,min:a=>Math.min(...a),max:a=>Math.max(...a),p25:a=>quantileVal(a,.25),p75:a=>quantileVal(a,.75)};
+      const vals=rows.map(r=>r[col]).filter(isN);
+      if(stats[ref]){ const a=stats[ref](vals); each(v=>isN(v)?Math.round(v-a):v); return true; }
+      const pu=ref==='first_per_unit'?'min':(ref.endsWith('_per_unit')?ref.slice(0,-'_per_unit'.length):null);
+      if(pu&&stats[pu]){ const by=kw.unit_id||'PERSONID_1'; const g={};
+        rows.forEach(r=>{ if(isN(r[col]))(g[r[by]]=g[r[by]]||[]).push(r[col]); });
+        const gv={}; for(const k in g)gv[k]=stats[pu](g[k]);
+        for(const r of rows) if(isN(r[col])) r[col]=Math.round(r[col]-gv[r[by]]); mark(col); return true; }
+      return false; }
+    case 'bin': { const col=cols[0]; const vals=rows.map(r=>r[col]).filter(isN);
+      if(kw.start!==undefined&&kw.stop!==undefined&&kw.width!==undefined){
+        const cuts=[]; for(let c=kw.start;c<kw.stop;c+=kw.width)cuts.push(c); cuts.push(kw.stop);
+        const lab=v=>{ if(v<cuts[0])return '<'+cuts[0]; for(let i=0;i<cuts.length-1;i++) if(v<=cuts[i+1]-1)return cuts[i]+'-'+(cuts[i+1]-1); return cuts[cuts.length-1]+'+'; };
+        each(v=>isN(v)?lab(v):v); mark(col); return true; }
+      if(kw.width!==undefined){const lo=Math.min(...vals); each(v=>isN(v)?Math.floor((v-lo)/kw.width):v); return true;}
+      const bins=kw.bins??10; const edges=[]; for(let i=1;i<bins;i++)edges.push(quantileVal(vals,i/bins));
+      each(v=>{if(!isN(v))return v; let b=0; for(const e of edges){if(v>=e)b++;} return b;}); return true; }
+    case 'noise': { const col=cols[0]; if(kw.using||kw.source==='digits')return false;
+      const rnd=mulberry32((kw.seed??0)+1); const pct=kw.scale!==undefined?null:(kw.pct??0.05);
+      each(v=>{ if(!isN(v))return v; const z=rnd()*2-1; return Math.round(kw.scale!==undefined?v+kw.scale*z:v*(1+pct*z)); }); return true; }
+    default: return false;  // round_date, diff_date, jitter, draw, risk, recode-string, etc.
+  }
+}
+
+/* ── rendering ───────────────────────────────────────────────────────────────── */
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+const fmtv=v=> v===null||v===undefined?'·':String(v);
+function highlight(line){
+  if(/^\/\/ UNSUPPORTED:/.test(line))return '<span class="un">'+esc(line)+'</span>';
+  if(/^\/\/ PENDING:|^\/\/ UNKNOWN/.test(line))return '<span class="pe">'+esc(line)+'</span>';
+  if(/^\/\//.test(line))return '<span class="cm">'+esc(line)+'</span>';
+  return esc(line);
+}
+function renderSim(sim){
+  const cols=BASE_COLS.concat(sim.newCols);
+  const after=new Map(); sim.rows.forEach(r=>after.set(r.PERSONID_1,r));
+  let h='<table class="sim"><thead><tr>'+cols.map(c=>'<th class="'+(BASE_COLS.includes(c)?'':'newc')+'">'+esc(c)+'</th>').join('')+'</tr></thead><tbody>';
+  for(const orig of SAMPLE){
+    const id=orig.PERSONID_1, a=after.get(id), drop=sim.dropped.has(id);
+    h+='<tr class="'+(drop?'drop':'')+'">';
+    for(const c of cols){
+      if(drop){ h+='<td>'+esc(fmtv(orig[c]))+'</td>'; continue; }
+      const ov=orig[c], av=a?a[c]:undefined, ch=sim.changed.has(c)&&String(ov)!==String(av);
+      if(c in orig){ h+='<td class="'+(ch?'chg':'')+'">'+(ch?'<span class="old">'+esc(fmtv(ov))+'</span>':'')+esc(fmtv(av))+'</td>'; }
+      else { h+='<td class="chg">'+esc(fmtv(av))+'</td>'; }   // new column
+    }
+    h+='</tr>';
+  }
+  h+='</tbody></table>';
+  $('simWrap').innerHTML=h;
+  const parts=[];
+  if(sim.info&&sim.info.length) parts.push(sim.info.join(' · '));
+  if(sim.dropped.size) parts.push(sim.dropped.size+' row(s) dropped');
+  if(sim.notes.length) parts.push('not simulated (translation only): '+sim.notes.join(', '));
+  $('simNote').textContent = parts.join(' · ') || 'All steps simulated on the sample table above.';
+}
+
+function run(){
+  const opts={dataset:$('dataset').value.trim()||'main',unit_id:$('unitid').value.trim()||null,seed:parseInt($('seed').value,10)||0};
+  const r=transform($('editor').value,opts);
+  $('out').innerHTML=r.script.split('\n').map(highlight).join('\n');
+  $('outMeta').textContent=r.script.split('\n').filter(l=>l&&!l.startsWith('//')).length+' microdata lines';
+  const ul=$('warns'); ul.innerHTML=r.warnings.map(w=>'<li>'+esc(w)+'</li>').join('');
+  $('warnsBox').classList.toggle('has',r.warnings.length>0);
+  $('warnsHd').textContent=r.warnings.length?r.warnings.length+' warning'+(r.warnings.length>1?'s':''):'Warnings';
+  try{ renderSim(simulate($('editor').value)); }catch(e){ $('simWrap').innerHTML=''; $('simNote').textContent='Simulation error: '+e.message; }
+}
+
+const STARTER = `# A few SDC steps — see the microdata + the simulated effect below.
+round(inntekt, to=50000)
+round_date(foedt, to="year")
+bin(alder, start=10, stop=80, width=10, labels=True)
+reduce_categories(diagnose, min=3, to="Annen")
+shorten(kommune, keep=2)
+risk(quasi_ids=["kjonn", "kommune", "alder"])`;
+
+/* ── init ────────────────────────────────────────────────────────────────────── */
+(function init(){
+  const vl=$('verblist');
+  for(const v of VERBS){
+    const el=document.createElement('div'); el.className='verb';
+    el.innerHTML='<div class="verb-head"><span class="verb-name">'+v.n+'</span>'+
+      '<button class="try-btn">Try</button><button class="docs-btn">Docs</button></div>'+
+      '<div class="verb-desc">'+esc(v.d)+'</div>';
+    const doc=document.createElement('div'); doc.className='verb-doc';
+    doc.innerHTML='<div class="vabout">'+esc(v.about)+'</div>';
+    for(const [code,note] of v.v){
+      const row=document.createElement('div'); row.className='vrow';
+      row.innerHTML='<code>'+esc(code)+'</code><span class="vnote">'+esc(note)+'</span>';
+      row.title='Click to load this example';
+      row.onclick=()=>{ $('editor').value=code; run(); };
+      doc.appendChild(row);
+    }
+    el.appendChild(doc);
+    el.querySelector('.try-btn').onclick=()=>{ $('editor').value=v.v[0][0]; run(); };
+    el.querySelector('.docs-btn').onclick=()=>el.classList.toggle('expanded');
+    vl.appendChild(el);
+  }
+  $('runBtn').onclick=run;
+  $('resetBtn').onclick=()=>{ $('editor').value=STARTER; run(); };
+  ['editor','dataset','unitid','seed'].forEach(id=>$(id).addEventListener('input',run));
+  $('guideBtn').onclick=()=>$('welcome').showModal();
+  $('welcomeGot').onclick=()=>$('welcome').close();
+  $('editor').value=STARTER; run();
+  try{ if(!localStorage.getItem('p2m_seen')){ $('welcome').showModal(); localStorage.setItem('p2m_seen','1'); } }catch(e){}
+})();
+</script>
+</body>
+</html>
