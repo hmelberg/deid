@@ -5,3 +5,6 @@ __pycache__/
 build/
 dist/
 .venv/
+
+# Netlify CLI link (site id, per-machine)
+.netlify/
